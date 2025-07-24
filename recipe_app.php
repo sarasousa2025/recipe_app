@@ -1,1 +1,0 @@
-git clone https://github.com/seu-usuario/recipe-app.git
