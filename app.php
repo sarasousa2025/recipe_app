@@ -8,9 +8,12 @@ $base_dados = "recipe_app";
 $con = mysqli_connect($host, $usuario, $senha, $base_dados);
 
 if (!$con) {
+
     echo "Erro na ligação: " . mysqli_connect_error() . "\n";
+
 } else {
-    echo "Ligação à base de dados efetuada com sucesso!\n\n";
+
+    echo "Ligação à base de dados efetuada com sucesso!\n\n"; }
 
     // ===============================
     // CRIAR NOVA RECEITA
@@ -75,99 +78,96 @@ if (!$con) {
     mysqli_close($con);
 }
 
-// ============================
-// CRIAR NOVA CATEGORIA
-// ============================
+if (!$con) {
+    echo "Erro na ligação: " . mysqli_connect_error() . "\n";
+    exit;
+}
+echo "Ligação estabelecida com sucesso!\n\n";
 
-echo "\n============================\n";
-echo "CRIAR NOVA CATEGORIA\n";
-echo "============================\n";
+// =========================================
+// LISTAR TODOS OS INGREDIENTES
+// =========================================
+echo "Ingredientes cadastrados:\n";
 
-$sql_nova_categoria = "INSERT INTO categoria (nome) VALUES ('Sobremesa')";
-if (mysqli_query($con, $sql_nova_categoria)) {
-    echo "Categoria 'Sobremesa' criada com sucesso!\n\n";
+$sql = "SELECT * FROM ingrediente";
+$resultado = mysqli_query($con, $sql);
+
+while ($linha = mysqli_fetch_assoc($resultado)) {
+    echo "ID: {$linha['id_ingrediente']} - Nome: {$linha['nome_ingrediente']}\n";
+}
+echo "\n";
+
+// =========================================
+// ASSOCIAR INGREDIENTE A UMA RECEITA
+// =========================================
+echo "Associar ingrediente 'Sal' à receita 1\n";
+
+$sql = "INSERT INTO receita_ingrediente (id_receita, id_ingrediente, quantidade, unidade_medida)
+        VALUES (1, 3, 1, 'pitada')";
+
+if (mysqli_query($con, $sql)) {
+    echo "Ingrediente associado com sucesso.\n\n";
 } else {
-    echo "Erro ao criar categoria: " . mysqli_error($con) . "\n\n";
+    echo "Erro: " . mysqli_error($con) . "\n\n";
 }
 
+// =========================================
+// ATUALIZAR QUANTIDADE/UNIDADE DE INGREDIENTE
+// =========================================
+echo "Atualizar quantidade do ingrediente 2 da receita 1\n";
 
-// ============================
-// LISTAR CATEGORIAS EXISTENTES
-// ============================
+$sql = "UPDATE receita_ingrediente
+        SET quantidade = 2, unidade_medida = 'colheres'
+        WHERE id_receita = 1 AND id_ingrediente = 2";
 
-echo "\n============================\n";
-echo "LISTAR CATEGORIAS EXISTENTES\n";
-echo "============================\n";
+if (mysqli_query($con, $sql)) {
+    echo "Quantidade atualizada com sucesso.\n\n";
+} else {
+    echo "Erro ao atualizar: " . mysqli_error($con) . "\n\n";
+}
 
-$sql_categorias = "SELECT * FROM categoria";
-$resultado_cat = mysqli_query($con, $sql_categorias);
+// =========================================
+// REMOVER INGREDIENTE DE UMA RECEITA
+// =========================================
+echo "Remover ingrediente 3 (Sal) da receita 1\n";
 
-if (mysqli_num_rows($resultado_cat) > 0) {
-    while ($cat = mysqli_fetch_assoc($resultado_cat)) {
-        echo "ID: {$cat['id_categoria']} - Nome: {$cat['nome']}\n";
+$sql = "DELETE FROM receita_ingrediente
+        WHERE id_receita = 1 AND id_ingrediente = 3";
+
+if (mysqli_query($con, $sql)) {
+    echo "Ingrediente removido da receita com sucesso.\n\n";
+} else {
+    echo "Erro ao remover ingrediente: " . mysqli_error($con) . "\n\n";
+}
+
+// =========================================
+// MOSTRAR DETALHES COMPLETOS DA RECEITA
+// =========================================
+echo "Detalhes da receita 1:\n";
+
+$sql = "SELECT receita.nome AS receita, receita.modo_preparacao, receita.tempo_preparacao, receita.numero_doses,
+               ingrediente.nome_ingrediente, receita_ingrediente.quantidade, receita_ingrediente.unidade_medida
+        FROM receita
+        INNER JOIN receita_ingrediente ON receita.id_receita = receita_ingrediente.id_receita
+        INNER JOIN ingrediente ON receita_ingrediente.id_ingrediente = ingrediente.id_ingrediente
+        WHERE receita.id_receita = 1";
+
+$resultado = mysqli_query($con, $sql);
+
+$primeira_linha = true;
+while ($linha = mysqli_fetch_assoc($resultado)) {
+    if ($primeira_linha) {
+        echo "Nome: {$linha['receita']}\n";
+        echo "Modo de preparo: {$linha['modo_preparacao']}\n";
+        echo "Tempo: {$linha['tempo_preparacao']} min\n";
+        echo "Doses: {$linha['numero_doses']}\n";
+        echo "Ingredientes:\n";
+        $primeira_linha = false;
     }
-    echo "\n";
-} else {
-    echo "Nenhuma categoria encontrada.\n\n";
+    echo "- {$linha['quantidade']} {$linha['unidade_medida']} de {$linha['nome_ingrediente']}\n";
 }
 
+mysqli_close($con);
 
-// ============================
-// ASSOCIAR RECEITA A CATEGORIA
-// ============================
-
-echo "\n============================\n";
-echo "ASSOCIAR RECEITA ID 1 À CATEGORIA ID 2\n";
-echo "============================\n";
-
-$sql_associar = "INSERT IGNORE INTO receita_categoria (id_receita, id_categoria) VALUES (1, 2)";
-if (mysqli_query($con, $sql_associar)) {
-    echo "Associação realizada com sucesso!\n\n";
-} else {
-    echo "Erro ao associar: " . mysqli_error($con) . "\n\n";
-}
-
-
-// ============================
-// DESASSOCIAR RECEITA DE CATEGORIA
-// ============================
-
-echo "\n============================\n";
-echo "DESASSOCIAR RECEITA ID 1 DA CATEGORIA ID 2\n";
-echo "============================\n";
-
-$sql_desassociar = "DELETE FROM receita_categoria WHERE id_receita = 1 AND id_categoria = 2";
-if (mysqli_query($con, $sql_desassociar)) {
-    echo "Desassociação realizada com sucesso!\n\n";
-} else {
-    echo "Erro ao desassociar: " . mysqli_error($con) . "\n\n";
-}
-
-
-// ============================
-// LISTAR RECEITAS POR CATEGORIA
-// ============================
-
-echo "\n============================\n";
-echo "RECEITAS DA CATEGORIA 'Pequeno Almoço'\n";
-echo "============================\n";
-
-$sql_receitas_por_cat = "
-    SELECT r.id_receita, r.nome, r.modo_preparacao, r.tempo_preparacao, r.numero_doses
-    FROM receita r
-    JOIN receita_categoria rc ON r.id_receita = rc.id_receita
-    JOIN categoria c ON c.id_categoria = rc.id_categoria
-    WHERE c.nome = 'Pequeno Almoço'
-";
-
-$resultado_receitas = mysqli_query($con, $sql_receitas_por_cat);
-
-if (mysqli_num_rows($resultado_receitas) > 0) {
-    while ($r = mysqli_fetch_assoc($resultado_receitas)) {
-        echo "ID: {$r['id_receita']} - Nome: {$r['nome']} - Tempo: {$r['tempo_preparacao']}min - Doses: {$r['numero_doses']}\n";
-    }
-    echo "\n";
-} else {
-    echo "Nenhuma receita encontrada para a categoria.\n\n";
-}
+?>
 
