@@ -75,14 +75,7 @@ if (!$con) {
         echo "Erro ao apagar receita: " . mysqli_error($con) . "\n\n";
     }
 
-    mysqli_close($con);
-}
-
-if (!$con) {
-    echo "Erro na ligação: " . mysqli_connect_error() . "\n";
-    exit;
-}
-echo "Ligação estabelecida com sucesso!\n\n";
+  
 
 // =========================================
 // LISTAR TODOS OS INGREDIENTES
@@ -167,7 +160,119 @@ while ($linha = mysqli_fetch_assoc($resultado)) {
     echo "- {$linha['quantidade']} {$linha['unidade_medida']} de {$linha['nome_ingrediente']}\n";
 }
 
-mysqli_close($con);
+// ===============================
+// LISTAR RECEITAS POR CATEGORIA
+// ===============================
+echo "Listar receitas da categoria 'Lanche' (ou ID = 1):\n";
 
+$categoria_input = 'Lanche'; // ou substitui por um número: 1
+
+$sql = is_numeric($categoria_input) ?
+    "SELECT r.* FROM receita r
+     INNER JOIN receita_categoria rc ON r.id_receita = rc.id_receita
+     WHERE rc.id_categoria = $categoria_input" :
+    "SELECT r.* FROM receita r
+     INNER JOIN receita_categoria rc ON r.id_receita = rc.id_receita
+     INNER JOIN categoria c ON rc.id_categoria = c.id_categoria
+     WHERE LOWER(c.nome) = LOWER('" . mysqli_real_escape_string($con, $categoria_input) . "')";
+
+$resultado = mysqli_query($con, $sql);
+
+if (mysqli_num_rows($resultado) > 0) {
+    while ($linha = mysqli_fetch_assoc($resultado)) {
+        echo "- {$linha['nome']} (ID: {$linha['id_receita']})\n";
+    }
+} else {
+    echo "Nenhuma receita encontrada para essa categoria.\n";
+}
+
+echo "\n";
+
+// ===========================================
+// LISTAR RECEITAS POR NOME DE INGREDIENTE
+// ===========================================
+echo "Listar receitas com o ingrediente 'Ovo':\n";
+
+$ingrediente_input = 'Ovo';
+
+$sql = "SELECT DISTINCT r.* FROM receita r
+        INNER JOIN receita_ingrediente ri ON r.id_receita = ri.id_receita
+        INNER JOIN ingrediente i ON ri.id_ingrediente = i.id_ingrediente
+        WHERE LOWER(i.nome_ingrediente) = LOWER('" . mysqli_real_escape_string($con, $ingrediente_input) . "')";
+
+$resultado = mysqli_query($con, $sql);
+
+if (mysqli_num_rows($resultado) > 0) {
+    while ($linha = mysqli_fetch_assoc($resultado)) {
+        echo "- {$linha['nome']} (ID: {$linha['id_receita']})\n";
+    }
+} else {
+    echo "Nenhuma receita encontrada com esse ingrediente.\n";
+}
+
+echo "\n";
+
+// ======================================
+// DETALHES COMPLETOS DE UMA RECEITA
+// ======================================
+echo "Detalhes completos da receita com nome 'Omelete simples':\n";
+
+$nome_receita = 'Omelete simples';
+
+$sql = "SELECT r.id_receita, r.nome AS titulo, r.modo_preparacao, r.tempo_preparacao, r.numero_doses,
+               i.nome_ingrediente, ri.quantidade, ri.unidade_medida
+        FROM receita r
+        LEFT JOIN receita_ingrediente ri ON r.id_receita = ri.id_receita
+        LEFT JOIN ingrediente i ON ri.id_ingrediente = i.id_ingrediente
+        WHERE LOWER(r.nome) = LOWER('" . mysqli_real_escape_string($con, $nome_receita) . "')";
+
+$resultado = mysqli_query($con, $sql);
+
+$primeira_linha = true;
+$encontrado = false;
+
+while ($linha = mysqli_fetch_assoc($resultado)) {
+    $encontrado = true;
+    if ($primeira_linha) {
+        echo "Título: {$linha['titulo']}\n";
+        echo "Modo de preparação: {$linha['modo_preparacao']}\n";
+        echo "Tempo de preparação: {$linha['tempo_preparacao']} minutos\n";
+        echo "Doses: {$linha['numero_doses']}\n";
+        echo "Ingredientes:\n";
+        $primeira_linha = false;
+    }
+    if ($linha['nome_ingrediente']) {
+        echo "- {$linha['quantidade']} {$linha['unidade_medida']} de {$linha['nome_ingrediente']}\n";
+    }
+}
+
+if (!$encontrado) {
+    echo "Receita não encontrada.\n";
+}
+
+echo "\n";
+
+// ======================================
+// PESQUISAR RECEITAS POR PARTE DO TÍTULO
+// ======================================
+echo "Pesquisar receitas com 'ovo' no título:\n";
+
+$pesquisa = 'ovo';
+
+$sql = "SELECT * FROM receita
+        WHERE LOWER(nome) LIKE '%" . mysqli_real_escape_string($con, strtolower($pesquisa)) . "%'";
+
+$resultado = mysqli_query($con, $sql);
+
+if (mysqli_num_rows($resultado) > 0) {
+    while ($linha = mysqli_fetch_assoc($resultado)) {
+        echo "- {$linha['nome']} (ID: {$linha['id_receita']})\n";
+    }
+} else {
+    echo "Nenhuma receita encontrada com esse termo no título.\n";
+}
+
+mysqli_close($con);
 ?>
+
 
